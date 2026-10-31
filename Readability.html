@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Readability and Keyword Density Checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+@font-face{font-family:"Flaviotte";src:local("Flaviotte"),url("fonts/Flaviotte.woff2") format("woff2"),url("fonts/Flaviotte.otf") format("opentype"),url("fonts/Flaviotte.ttf") format("truetype");font-weight:400;font-style:normal;font-display:swap}
+:root{
+  color-scheme:dark;
+  --paper:#12211A; --ink:#F9EBD7; --emerald:#046A38; --accent:#E34222;
+  --muted:color-mix(in srgb,var(--ink) 72%,var(--paper));
+  --line:color-mix(in srgb,var(--ink) 22%,var(--paper));
+  --soft:color-mix(in srgb,var(--ink) 9%,var(--paper));
+  --c-educate:#2C5A45; --c-proof:#6A4B42; --c-bts:#665B33; --c-engage:#4E4468; --c-promo:#6E4048; --c-trend:#35566A;
+  --m-hard:#7A6A2E; --m-vhard:#8A3F4C; --m-adv:#2F6482; --m-pas:#2F7352; --m-simple:#62508A;
+  --display:"Flaviotte",Georgia,"Times New Roman",serif;
+  --sans:"Hanken Grotesk",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:64px 28px 40px}
+h1{font-family:var(--display);font-weight:400;font-size:clamp(2.6rem,7vw,4.8rem);line-height:.98;letter-spacing:-.025em;margin:0 0 20px;max-width:16ch}
+h2{font-family:var(--display);font-weight:400;font-size:1.9rem;letter-spacing:-.01em;margin:0 0 18px}
+.sub{font-size:1.1rem;color:var(--muted);margin:0 0 44px;max-width:56ch}
+.l{display:block;font-size:.9rem;color:var(--muted);margin:0 0 8px}
+
+.app{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:32px;align-items:start}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.counter{margin-left:auto;color:var(--muted);font-size:.92rem}
+.chips{display:flex;flex-wrap:wrap;gap:10px}
+.chips label{display:inline-flex;align-items:center;padding:8px 18px;border-radius:999px;background:var(--soft);font-size:.95rem;cursor:pointer}
+.chips input{position:absolute;opacity:0;pointer-events:none}
+.chips label:has(input:checked){background:var(--emerald);color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.chips label:has(input:focus-visible){outline:2px solid var(--ink);outline-offset:2px}
+.btn{font:inherit;font-weight:600;font-size:1.05rem;border-radius:999px;padding:13px 26px;border:1px solid var(--accent);background:var(--accent);color:#fff;cursor:pointer}
+.btn:hover{background:#C93114;border-color:#C93114}
+.btn.alt{background:transparent;color:var(--ink);border-color:var(--ink);padding:8px 16px;font-size:.92rem;font-weight:500}
+.btn.alt:hover{background:var(--soft)}
+.btn.main{padding:9px 18px;font-size:.92rem}
+.btn:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+
+textarea,.editor{width:100%;min-height:460px;border:1px solid var(--ink);border-radius:16px;padding:26px;font:inherit;font-size:1.12rem;line-height:1.8;color:var(--ink);background:transparent}
+textarea{resize:vertical;display:block}
+textarea::placeholder{color:color-mix(in srgb,var(--ink) 45%,var(--paper))}
+textarea:focus-visible,.editor:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.editor{white-space:pre-wrap;overflow-wrap:anywhere}
+.editor[hidden],textarea[hidden]{display:none}
+.editor .s{border-radius:4px;padding:1px 0;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.s.hard{background:var(--m-hard)}
+.s.vhard{background:var(--m-vhard)}
+.editor mark{color:inherit;border-radius:4px;padding:1px 0;box-shadow:0 0 0 1px color-mix(in srgb,var(--ink) 35%,transparent)}
+mark.adv{background:var(--m-adv)}
+mark.pas{background:var(--m-pas)}
+mark.sim{background:var(--m-simple)}
+.hint{color:var(--muted);font-size:.9rem;margin:12px 2px 0}
+
+.side{position:sticky;top:20px;display:grid;gap:10px}
+.grade{border:1px solid var(--line);border-radius:18px;padding:20px 22px;background:var(--soft)}
+.grade small{display:block;color:var(--muted);font-size:.88rem}
+.grade b{display:block;font-family:var(--display);font-weight:400;font-size:3.6rem;line-height:1;letter-spacing:-.02em;margin:6px 0 8px}
+.grade span{font-size:.98rem}
+.card{border-radius:14px;padding:14px 16px;background:var(--bg);font-size:.95rem}
+.card b{font-family:var(--display);font-weight:400;font-size:1.7rem;margin-right:6px}
+.card.zero{opacity:.55}
+.card .alts{display:block;margin-top:6px;font-size:.85rem;color:color-mix(in srgb,var(--ink) 85%,transparent)}
+.stats{margin:8px 0 0;padding:0;list-style:none;border-top:1px solid var(--line)}
+.stats li{display:flex;justify-content:space-between;padding:9px 2px;border-bottom:1px solid var(--line);font-size:.93rem}
+.stats li span:first-child{color:var(--muted)}
+.stats li span:last-child{font-variant-numeric:tabular-nums}
+.empty-state{padding:20px 0;color:var(--muted);font-size:1.02rem}
+
+section.keywords{margin-top:72px;border-top:1px solid var(--line);padding-top:40px}
+.kwfield{max-width:640px;margin:0 0 36px}
+input[type=text]{width:100%;font:inherit;font-size:1.2rem;color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--ink);border-radius:0;padding:6px 0 10px}
+input[type=text]::placeholder{color:color-mix(in srgb,var(--ink) 45%,var(--paper))}
+input[type=text]:focus-visible{outline:none;border-bottom-width:3px;padding-bottom:8px}
+.row{display:grid;grid-template-columns:minmax(120px,1.4fr) 3fr 52px 64px;gap:14px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row.head{color:var(--muted);font-size:.85rem;border-bottom-color:var(--ink)}
+.row .n,.row .d{text-align:right;font-variant-numeric:tabular-nums}
+.track{height:10px;border-radius:999px;background:var(--soft)}
+.track i{display:block;height:100%;border-radius:999px;background:color-mix(in srgb,var(--ink) 55%,var(--paper))}
+.note{color:var(--muted);font-size:.92rem;margin:14px 0 0;max-width:64ch}
+.kwgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:36px}
+.kw{border-radius:14px;padding:18px 20px;background:var(--bg)}
+.kw h3{margin:0 0 6px;font-size:1.1rem;font-weight:600}
+.kw .big{font-family:var(--display);font-size:2.2rem;line-height:1.05}
+.kw p{margin:6px 0 0;font-size:.92rem}
+.kwblock{margin-bottom:40px}
+
+footer{border-top:1px solid var(--line);margin-top:72px;padding:32px 0 8px;display:flex;align-items:center;gap:16px;color:var(--muted);font-size:.92rem}
+.logo{background:#F9EBD7;border-radius:14px;padding:6px 16px;display:inline-flex;overflow:hidden}
+footer img{height:52px;width:auto;display:block;mix-blend-mode:multiply}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr}
+  .side{position:static}
+}
+@media (max-width:760px){
+  .wrap{padding:40px 20px 32px}
+  .kwgrid{grid-template-columns:1fr}
+  .row{grid-template-columns:1fr 52px 64px}
+  .row .track{grid-column:1/-1;order:3}
+  .row.head .track{display:none}
+  textarea,.editor{min-height:340px;padding:18px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Check how your writing reads.</h1>
+  <p class="sub">Paste your text, switch to Edit, and see hard sentences, adverbs, passive voice and simpler word choices highlighted. Everything runs in your browser, nothing is uploaded.</p>
+
+  <div class="app">
+    <div class="main">
+      <div class="toolbar">
+        <div class="chips" role="radiogroup" aria-label="Mode">
+          <label><input type="radio" name="mode" value="write" checked>Write</label>
+          <label><input type="radio" name="mode" value="edit">Edit</label>
+        </div>
+        <button class="btn alt" id="sample" type="button">Use sample text</button>
+        <button class="btn alt" id="clear" type="button">Clear</button>
+        <span class="counter" id="counter">0 words</span>
+      </div>
+      <label class="l" for="text" id="textlabel">Your text</label>
+      <textarea id="text" placeholder="Paste an article, blog post or landing page copy here"></textarea>
+      <div class="editor" id="editor" tabindex="0" hidden aria-label="Highlighted text"></div>
+      <p class="hint" id="hint">Write or paste in this box, then switch to Edit to see the highlights.</p>
+    </div>
+    <aside class="side" id="side" aria-live="polite"></aside>
+  </div>
+
+  <section class="keywords">
+    <h2>Keywords</h2>
+    <div class="kwfield">
+      <label class="l" for="kw">Target keywords (optional, separate with commas)</label>
+      <input type="text" id="kw" placeholder="monk fruit sweetener, natural sweetener">
+    </div>
+    <div id="kwresults" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    <span>Built by</span>
+    <span class="logo"><img src="logo.png" alt="Adarsh P Biju" onerror="this.parentElement.style.display='none';this.parentElement.nextElementSibling.style.display='inline'"></span>
+    <span style="display:none">Adarsh P Biju</span>
+  </footer>
+</div>
+
+<script>
+const STOP = new Set(("a about above after again all also am an and any are as at be because been before being below between both but by can could did do does doing down during each few for from further had has have having he her here hers him his how i if in into is it its just me more most my no nor not now of off on once only or other our out over own same she should so some such than that the their them then there these they this those through to too under until up very was we were what when where which while who whom why will with would you your yours yet get gets got make makes made one two like use used using may might many much every per via").split(" "));
+const NOT_ADV = new Set("only early family daily weekly monthly yearly likely unlikely friendly lovely lonely holy ugly silly jelly belly bully reply apply supply imply comply rely fly ally assembly anomaly butterfly italy july rally tally monopoly melancholy homily lily bubbly curly wobbly deadly costly elderly orderly lively timely ghastly".split(" "));
+const IRREG = "written|made|done|given|taken|seen|known|shown|built|found|held|kept|left|lost|paid|sent|sold|told|thought|brought|bought|caught|chosen|driven|eaten|fallen|forgotten|hidden|led|met|read|run|set|spoken|stolen|understood|won|worn|begun|broken|drawn|grown|hit|put|cut|let|shut";
+const PASSIVE_RE = new RegExp("\\b(?:is|are|was|were|be|been|being|am)\\s+(?:[A-Za-z]+ly\\s+)?(?:[A-Za-z]{2,}ed|" + IRREG + ")\\b", "gi");
+const SIMPLE = {"utilize":"use","utilise":"use","commence":"start","terminate":"end","purchase":"buy","assist":"help","approximately":"about","demonstrate":"show","additional":"more","sufficient":"enough","numerous":"many","in order to":"to","due to the fact that":"because","at this point in time":"now","in the event that":"if","a number of":"several","prior to":"before","subsequently":"later","endeavor":"try","endeavour":"try","facilitate":"help","obtain":"get","require":"need","regarding":"about","in spite of the fact that":"although","for the purpose of":"for","with regard to":"about","in addition":"also","as a result of":"because of","is able to":"can","has the ability to":"can","at the present time":"now","a majority of":"most","in close proximity to":"near","leverage":"use","optimal":"best","initiate":"start","ascertain":"find out","remainder":"rest"};
+const SIMPLE_RE = new RegExp("\\b(?:" + Object.keys(SIMPLE).sort((a,b)=>b.length-a.length).map(k=>k.replace(/[.*+?^${}()|[\]\\]/g,"\\$&").replace(/ /g,"\\s+")).join("|") + ")\\b", "gi");
+
+const SAMPLE = `Content marketing is really about helping people, and the best content is written by teams who truly understand the audience they are trying to reach, which is why so many brands that utilize generic templates end up with posts that nobody finishes reading.
+
+In order to stand out, you should write short sentences. Cut words that do not earn their place. The report was reviewed by the whole team before it was published.
+
+Approximately half of all readers leave quickly if the first paragraph is confusing. Good content marketing is simple: pick a topic your audience cares about, explain it plainly, and give them one useful step to take.`;
+
+let ngram = 1, mode = "write", state = null;
+
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function r1(n){return Math.round(n*10)/10}
+function r2(n){return Math.round(n*100)/100}
+function tokenize(text){return text.toLowerCase().match(/[\p{L}\p{N}]+(?:['’-][\p{L}\p{N}]+)*/gu)||[]}
+function letters(w){return w.replace(/[^\p{L}\p{N}]/gu,"").length}
+function syllables(w){
+  w=w.toLowerCase().replace(/[^a-z]/g,"");
+  if(!w||w.length<=3)return 1;
+  w=w.replace(/(?:[^laeiouy]es|ed|[^laeiouy]e)$/,"").replace(/^y/,"");
+  const m=w.match(/[aeiouy]{1,2}/g);
+  return m?m.length:1;
+}
+function ari(chars,words,sentences){
+  if(!words)return 0;
+  return Math.max(0,4.71*(chars/words)+0.5*(words/Math.max(sentences,1))-21.43);
+}
+
+// sentence ranges with positions in the original text
+function findSentences(text){
+  const t=text.replace(/\b(e\.g|i\.e|vs|mr|mrs|ms|dr|etc|approx)\./gi,m=>m.slice(0,-1)+"\u00A7").replace(/(\d)\.(\d)/g,"$1\u00A7$2");
+  const re=/[^.!?\n]+(?:[.!?]+["'’”)\]]*)?/g;
+  const out=[];let m;
+  while((m=re.exec(t))){
+    const raw=m[0];
+    const lead=raw.length-raw.trimStart().length;
+    const trimmed=raw.trim();
+    if(!trimmed)continue;
+    const start=m.index+lead,end=start+trimmed.length;
+    const toks=tokenize(text.slice(start,end));
+    if(!toks.length)continue;
+    const chars=toks.reduce((a,w)=>a+letters(w),0);
+    const g=ari(chars,toks.length,1);
+    let cls="";
+    if(toks.length>=14){if(g>=14)cls="vhard";else if(g>=10)cls="hard"}
+    out.push({start,end,words:toks.length,cls});
+  }
+  return out;
+}
+function findMarks(text){
+  const marks=[];
+  const free=(s,e)=>!marks.some(m=>s<m.end&&e>m.start);
+  let m;
+  PASSIVE_RE.lastIndex=0;
+  while((m=PASSIVE_RE.exec(text))){marks.push({start:m.index,end:m.index+m[0].length,cls:"pas",title:"Passive voice. Consider naming who does the action."})}
+  SIMPLE_RE.lastIndex=0;
+  while((m=SIMPLE_RE.exec(text))){
+    const key=m[0].toLowerCase().replace(/\s+/g," ");
+    if(free(m.index,m.index+m[0].length))marks.push({start:m.index,end:m.index+m[0].length,cls:"sim",title:"Try: "+SIMPLE[key],alt:m[0].replace(/\s+/g," ")+" → "+SIMPLE[key]});
+  }
+  const adv=/\b[A-Za-z]{3,}ly\b/g;
+  while((m=adv.exec(text))){
+    if(NOT_ADV.has(m[0].toLowerCase()))continue;
+    if(free(m.index,m.index+m[0].length))marks.push({start:m.index,end:m.index+m[0].length,cls:"adv",title:"Adverb. Is there a stronger verb?"});
+  }
+  return marks.sort((a,b)=>a.start-b.start);
+}
+function renderEdit(text,sentences,marks){
+  let html="",pos=0,mi=0;
+  const seg=(a,b)=>{
+    let h="",p=a;
+    while(mi<marks.length&&marks[mi].start<b){
+      const k=marks[mi];
+      if(k.start<a){mi++;continue}
+      h+=esc(text.slice(p,k.start))+`<mark class="${k.cls}" title="${esc(k.title)}">${esc(text.slice(k.start,k.end))}</mark>`;
+      p=k.end;mi++;
+    }
+    return h+esc(text.slice(p,b));
+  };
+  sentences.forEach(s=>{
+    html+=esc(text.slice(pos,s.start));
+    const inner=seg(s.start,s.end);
+    html+=s.cls?`<span class="s ${s.cls}">${inner}</span>`:inner;
+    pos=s.end;
+  });
+  return html+esc(text.slice(pos));
+}
+
+function analyze(text,keywords){
+  const tokens=tokenize(text);
+  const words=tokens.length;
+  const sentences=findSentences(text);
+  const sc=Math.max(sentences.length,1);
+  const chars=tokens.reduce((a,w)=>a+letters(w),0);
+  const syl=tokens.reduce((a,w)=>a+syllables(w),0);
+  const paragraphs=text.split(/\n\s*\n/).filter(p=>p.trim()).length;
+  const asl=words/sc,asw=words?syl/words:0;
+  const marks=findMarks(text);
+  const flesch=Math.max(0,Math.min(100,206.835-1.015*asl-84.6*asw));
+  const lists={1:count(tokens,1),2:count(tokens,2),3:count(tokens,3)};
+  const kwStats=keywords.map(k=>{
+    const kt=tokenize(k);
+    if(!kt.length)return null;
+    let c=0,first=false;
+    for(let i=0;i<=tokens.length-kt.length;i++){
+      if(kt.every((w,j)=>tokens[i+j]===w)){c++;if(i<100)first=true}
+    }
+    return {k,c,density:words?c/words*100:0,first};
+  }).filter(Boolean);
+  return {words,sc,paragraphs,chars:text.length,grade:ari(chars,words,sc),flesch,asl,readMin:words/230,
+    sentences,marks,lists,kwStats,
+    vhard:sentences.filter(s=>s.cls==="vhard").length,
+    hard:sentences.filter(s=>s.cls==="hard").length,
+    adv:marks.filter(m=>m.cls==="adv").length,
+    pas:marks.filter(m=>m.cls==="pas").length,
+    sim:marks.filter(m=>m.cls==="sim")};
+}
+function count(tokens,n){
+  const map=new Map();
+  for(let i=0;i<=tokens.length-n;i++){
+    const g=tokens.slice(i,i+n);
+    if(n===1){const w=g[0];if(STOP.has(w)||w.length<3||/^\d+$/.test(w))continue}
+    else{if(STOP.has(g[0])||STOP.has(g[n-1]))continue;if(g.some(w=>/^\d+$/.test(w)))continue}
+    const key=g.join(" ");map.set(key,(map.get(key)||0)+1);
+  }
+  return [...map.entries()].filter(e=>e[1]>=2).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,10);
+}
+function gradeLabel(g){
+  if(g<=6)return "Very easy to read";
+  if(g<=9)return "Good";
+  if(g<=12)return "Getting dense. Try shorter sentences.";
+  return "Hard to read. Split long sentences.";
+}
+function readTime(a){return a.readMin<1?"under 1 min":Math.round(a.readMin)+" min"}
+
+function renderSide(a){
+  const side=document.getElementById("side");
+  const g=Math.round(a.grade);
+  const advMax=Math.max(1,Math.floor(a.words/100));
+  const pasMax=Math.max(1,Math.floor(a.sc/8));
+  const card=(n,txt,bg)=>`<div class="card${n===0?" zero":""}" style="--bg:${bg}"><b>${n}</b>${txt}</div>`;
+  const s=(n)=>n===1?"":"s";
+  side.innerHTML=`
+    <div class="grade"><small>Readability</small><b>Grade ${g}</b><span>${a.words?gradeLabel(g):"Add some text to begin."}</span></div>
+    ${card(a.vhard,`of ${a.sc} sentence${s(a.sc)} ${a.vhard===1?"is":"are"} very hard to read.`,"var(--m-vhard)")}
+    ${card(a.hard,`of ${a.sc} sentence${s(a.sc)} ${a.hard===1?"is":"are"} hard to read.`,"var(--m-hard)")}
+    ${card(a.adv,`adverb${s(a.adv)}. Aim for ${advMax} or fewer.`,"var(--m-adv)")}
+    ${card(a.pas,`use${s(a.pas)} of passive voice. Aim for ${pasMax} or fewer.`,"var(--m-pas)")}
+    <div class="card${a.sim.length===0?" zero":""}" style="--bg:var(--m-simple)"><b>${a.sim.length}</b>phrase${s(a.sim.length)} ${a.sim.length===1?"has":"have"} simpler alternatives.${a.sim.length?`<span class="alts">${[...new Set(a.sim.map(m=>m.alt))].slice(0,6).map(esc).join("<br>")}</span>`:""}</div>
+    <ul class="stats">
+      <li><span>Words</span><span>${a.words.toLocaleString()}</span></li>
+      <li><span>Characters</span><span>${a.chars.toLocaleString()}</span></li>
+      <li><span>Paragraphs</span><span>${a.paragraphs}</span></li>
+      <li><span>Sentences</span><span>${a.words?a.sc:0}</span></li>
+      <li><span>Reading time</span><span>${a.words?readTime(a):"0 min"}</span></li>
+      <li><span>Flesch reading ease</span><span>${a.words?Math.round(a.flesch):0}</span></li>
+    </ul>`;
+}
+function renderKeywords(a,total){
+  const out=document.getElementById("kwresults");
+  if(!total){out.innerHTML='<div class="empty-state">Word and phrase counts appear here once you add text.</div>';return}
+  const list=a.lists[ngram];
+  const maxC=list.length?list[0][1]:1;
+  const label=ngram===1?"Word":ngram===2?"Two-word phrase":"Three-word phrase";
+  let html="";
+  if(a.kwStats.length){
+    html+=`<div class="kwgrid">`+a.kwStats.map(k=>{
+      let status,bg;
+      if(k.c===0){status="Not used yet. Work it in where it fits naturally.";bg="var(--c-promo)"}
+      else if(k.density<0.5){status="Light use. There is room to mention it a little more.";bg="var(--c-bts)"}
+      else if(k.density<=2.5){status="Healthy range for most pages.";bg="var(--c-educate)"}
+      else{status="Heavy use. Check that it still reads naturally.";bg="var(--c-promo)"}
+      return `<div class="kw" style="--bg:${bg}"><h3>${esc(k.k)}</h3><div class="big">${k.c} ${k.c===1?"use":"uses"}, ${r2(k.density)}%</div><p>${status}</p><p>${k.first?"Appears in the first 100 words.":"Not in the first 100 words."}</p></div>`;
+    }).join("")+`</div>`;
+  }
+  html+=`<div class="kwblock"><div class="chips" role="radiogroup" aria-label="Phrase length" style="margin-bottom:12px">
+      ${[1,2,3].map(n=>`<label><input type="radio" name="ng" value="${n}"${n===ngram?" checked":""}>${n===1?"Single words":n===2?"Two words":"Three words"}</label>`).join("")}</div>`;
+  if(list.length){
+    html+=`<div class="row head"><span>${label}</span><span class="track"></span><span class="n">Uses</span><span class="d">Density</span></div>`;
+    html+=list.map(([k,c])=>`<div class="row"><span>${esc(k)}</span><span class="track"><i style="width:${Math.max(4,c/maxC*100)}%"></i></span><span class="n">${c}</span><span class="d">${r2(c/total*100)}%</span></div>`).join("");
+  }else{
+    html+=`<div class="empty-state">Nothing repeats yet. Words and phrases appear here once they are used at least twice. Common filler words are ignored.</div>`;
+  }
+  html+=`<p class="note">Density is the share of your total word count that a word or phrase makes up. For target keywords, 0.5% to 2.5% is a common rule of thumb, not a search engine rule. Write for people first.</p></div>`;
+  out.innerHTML=html;
+  out.querySelectorAll('input[name="ng"]').forEach(r=>r.addEventListener("change",e=>{ngram=+e.target.value;renderKeywords(state,total)}));
+}
+
+function update(){
+  const text=document.getElementById("text").value;
+  const kws=document.getElementById("kw").value.split(",").map(s=>s.trim()).filter(Boolean);
+  const a=analyze(text,kws);state=a;
+  document.getElementById("counter").textContent=a.words+(a.words===1?" word":" words");
+  renderSide(a);
+  renderKeywords(a,a.words);
+  if(mode==="edit")renderEditor(text,a);
+}
+function renderEditor(text,a){
+  const ed=document.getElementById("editor");
+  ed.innerHTML=text.trim()?renderEdit(text,a.sentences,a.marks):'<span style="color:var(--muted)">Nothing to show yet. Switch to Write and add some text.</span>';
+}
+function setMode(m){
+  mode=m;
+  const ta=document.getElementById("text"),ed=document.getElementById("editor"),hint=document.getElementById("hint");
+  if(m==="edit"){
+    ta.hidden=true;ed.hidden=false;
+    renderEditor(ta.value,state||analyze(ta.value,[]));
+    hint.textContent="Highlights: red and yellow are very hard and hard sentences, blue adverbs, green passive voice, purple phrases with simpler alternatives. Hover a purple phrase for a suggestion. Switch to Write to change the text.";
+  }else{
+    ed.hidden=true;ta.hidden=false;
+    hint.textContent="Write or paste in this box, then switch to Edit to see the highlights.";
+  }
+  document.querySelector('input[name="mode"][value="'+m+'"]').checked=true;
+}
+
+let timer;
+const ta=document.getElementById("text"),kw=document.getElementById("kw");
+function later(){clearTimeout(timer);timer=setTimeout(update,150)}
+ta.addEventListener("input",later);
+kw.addEventListener("input",later);
+document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener("change",e=>{update();setMode(e.target.value)}));
+document.getElementById("sample").onclick=()=>{ta.value=SAMPLE;kw.value=kw.value||"content marketing";update();setMode("edit")};
+document.getElementById("clear").onclick=()=>{ta.value="";kw.value="";update();setMode("write");ta.focus()};
+update();
+</script>
+</body>
+</html>
