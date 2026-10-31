@@ -2,9 +2,8 @@
 
 Paste any article, blog post or landing page copy and see how readable it is, how long it takes to read, and which words and phrases it leans on most. Runs entirely in the browser, so nothing you paste is uploaded.
 
-**Live demo:** `https://<your-username>.github.io/readability-keyword-checker/`
+**Live demo:** `https:///adarshpbiju404-glitch.github.io/readability-keyword-checker/`
 
-![Screenshot of the checker](screenshot.png)
 
 ## Why I built this
 
@@ -33,17 +32,10 @@ Good SEO writing has to work for two audiences: readers who skim and search engi
 
 Inspired by the Hemingway Editor. This is an independent project and does not use its code.
 
-## Add your logo and font
-
-Save your logo as `logo.png` next to `index.html`. For the headline font, put your licensed Flaviotte file in the `fonts/` folder as `Flaviotte.woff2`, `Flaviotte.otf` or `Flaviotte.ttf`. Without it the page uses a serif fallback.
 
 ## Run it locally
 
-Open `index.html` in any browser.
-
-## Deploy on GitHub Pages
-
-Repo Settings, then Pages, then deploy from the `main` branch root.
+Open `Readability.html` in any browser.
 
 ## Roadmap
 
@@ -52,6 +44,4 @@ Repo Settings, then Pages, then deploy from the `main` branch root.
 - Compare two drafts side by side
 - Companion tool: 30-day content calendar generator
 
-## License
 
-MIT
